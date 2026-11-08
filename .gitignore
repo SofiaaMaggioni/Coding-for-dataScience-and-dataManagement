@@ -227,5 +227,11 @@ __marimo__/
 .DS_Store
 Thumbs.db
 
-# Huge file
-# data/*.csv
+# Project datasets
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.csv
+*.zip
+*.tar.gz
