@@ -44,7 +44,7 @@ def clean_interactions(df_interactions, drop_zeros=True):
     # 2. Conversione tipo
     clean_df["rating"] = clean_df["rating"].astype(float)
 
-    # 3. Filtraggio booleano (esclusione rating = 0)
+    # 3. Esclusione rating = 0
     if drop_zeros:
         clean_df = clean_df[clean_df["rating"] > 0]
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     interactions_issues["rating pari a 0"] = (raw_interactions["rating"] == 0).sum()
     print(interactions_issues)
 
-    # Esecuzione pulizia
+    # pulizia
     clean_inter = clean_interactions(raw_interactions, drop_zeros=True)
     clean_rec = clean_recipes(raw_recipes)
 
