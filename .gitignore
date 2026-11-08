@@ -218,3 +218,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Editor settings
+.vscode/
+.idea/
+
+# System files (Mac / Windows)
+.DS_Store
+Thumbs.db
+
+# Huge file
+# data/*.csv
