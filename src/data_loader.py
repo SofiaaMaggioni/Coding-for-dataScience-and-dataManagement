@@ -70,6 +70,18 @@ def clean_recipes(df_recipes):
 
     return clean_df
 
+def save_clean_data(df_rec, df_inter, output_dir="data/clean"):
+    """
+    Salva i DataFrame puliti in formato CSV.
+    """
+    recipes_out = os.path.join(output_dir, "clean_recipes.csv")
+    interactions_out = os.path.join(output_dir, "clean_interactions.csv")
+
+    print(f"\nSalvataggio dei file puliti in {output_dir}...")
+    df_rec.to_csv(recipes_out, index=False)
+    df_inter.to_csv(interactions_out, index=False)
+    print("Salvataggio completato!")
+
 
 if __name__ == "__main__":
     raw_recipes, raw_interactions = load_raw_data()
@@ -97,3 +109,5 @@ if __name__ == "__main__":
 
     print(f"\nRicette valide finali: {len(clean_rec)}")
     print(f"Interazioni valide finali: {len(clean_inter)}")
+    
+    save_clean_data(clean_rec, clean_inter)
