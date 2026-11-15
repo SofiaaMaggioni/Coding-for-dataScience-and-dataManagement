@@ -21,15 +21,15 @@ def summarize_recipe_ratings(interactions_df):
     """
     valid_ratings = interactions_df[interactions_df["rating"] > 0]
 
-    rating_summary = valid_ratings.groupby("recipe_id")["rating"].agg(
+    rating_summary_df = valid_ratings.groupby("recipe_id")["rating"].agg(
         rating_count="count",
         rating_mean="mean",
     )
 
-    return rating_summary.reset_index()
+    return rating_summary_df.reset_index()
 
 
-def add_rating_summary(recipes_df, rating_summary):
+def add_rating_summary(recipes_df, rating_summary_df):
     """
     Add rating counts and means to the recipes dataframe.
 
@@ -40,7 +40,7 @@ def add_rating_summary(recipes_df, rating_summary):
     ----------
     recipes_df : pandas.DataFrame
         Recipes dataframe containing an ``id`` column.
-    rating_summary : pandas.DataFrame
+    rating_summary_df : pandas.DataFrame
         Output of :func:`summarize_recipe_ratings`.
 
     Returns
@@ -49,7 +49,7 @@ def add_rating_summary(recipes_df, rating_summary):
         Recipes joined with their rating counts and means.
     """
     return recipes_df.merge(
-        rating_summary,
+        rating_summary_df,
         how="left",
         left_on="id",
         right_on="recipe_id",
