@@ -17,15 +17,31 @@ def summarize_recipe_ratings(interactions_df):
     Returns
     -------
     pandas.DataFrame
-        A dataframe with ``recipe_id``, ``rating_count`` and ``rating_mean``.
+        A dataframe with ``recipe_id``, rating count and mean, and counts for
+        each rating from 1 to 5.
     """
-    valid_ratings = interactions_df[interactions_df["rating"] > 0]
+    valid_ratings = interactions_df[
+        interactions_df["rating"] > 0
+    ].dropna(subset=["user_id", "recipe_id"])
 
     rating_summary_df = valid_ratings.groupby("recipe_id")["rating"].agg(
         rating_count="count",
         rating_mean="mean",
     )
 
+    rating_counts_df = valid_ratings.pivot_table(
+        index="recipe_id",
+        columns="rating",
+        values="user_id",
+        aggfunc="count",
+        fill_value=0,
+    )
+    rating_counts_df = rating_counts_df.reindex(columns=range(1, 6), fill_value=0)
+    rating_counts_df.columns = [
+        f"rating_{int(rating)}_count" for rating in rating_counts_df.columns
+    ]
+
+    rating_summary_df = rating_summary_df.join(rating_counts_df)
     return rating_summary_df.reset_index()
 
 
