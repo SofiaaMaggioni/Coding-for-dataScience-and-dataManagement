@@ -3,6 +3,28 @@
 import numpy as np
 
 
+def simple_average_ranking(recipes_df):
+    """
+    Rank recipes by their simple average rating.
+
+    Recipes without valid ratings are excluded because they have no observed
+    average rating.
+
+    Parameters
+    ----------
+    recipes_df : pandas.DataFrame
+        Recipes dataframe joined with the rating summary from
+        :func:`src.analysis.add_rating_summary`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Rated recipes sorted from highest to lowest simple average.
+    """
+    rated_recipes = recipes_df.dropna(subset=["rating_mean"]).copy()
+    return rated_recipes.sort_values("rating_mean", ascending=False)
+
+
 def bayesian_ranking(recipes_df, z=1.65):
     """
     Rank rated recipes by a Bayesian lower bound for their mean rating.
@@ -53,10 +75,18 @@ if __name__ == "__main__":
     rating_summary = summarize_recipe_ratings(interactions)
     recipes_with_ratings = add_rating_summary(recipes, rating_summary)
     ranking = bayesian_ranking(recipes_with_ratings)
+    average_ranking = simple_average_ranking(recipes_with_ratings)
 
     print("Top 10 recipes by Bayesian score:")
     print(
         ranking[["id", "name", "rating_count", "rating_mean", "bayesian_score"]]
+        .head(10)
+        .to_string(index=False)
+    )
+
+    print("\nTop 10 recipes by simple average rating:")
+    print(
+        average_ranking[["id", "name", "rating_count", "rating_mean"]]
         .head(10)
         .to_string(index=False)
     )
