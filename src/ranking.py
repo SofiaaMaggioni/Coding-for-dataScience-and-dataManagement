@@ -101,6 +101,53 @@ def bayesian_lb_ranking(recipes_df, z=1.65):
     return rated_recipes.sort_values("bayesian_score", ascending=False)
 
 
+def wilson_ranking(recipes_df, z=1.96):
+    """
+    Rank recipes by the Wilson lower bound for positive ratings.
+
+    Ratings of 4 or 5 stars are considered positive; ratings from 1 to 3
+    are considered non-positive. The default ``z`` gives a 95% confidence
+    level for the Wilson interval.
+
+    Parameters
+    ----------
+    recipes_df : pandas.DataFrame
+        Recipes dataframe joined with the rating summary from
+        :func:`src.analysis.add_rating_summary`.
+    z : float, optional
+        Normal-distribution multiplier. Defaults to 1.96 (95% confidence).
+
+    Returns
+    -------
+    pandas.DataFrame
+        Rated recipes sorted from highest to lowest Wilson lower bound.
+    """
+    rated_recipes = recipes_df.dropna(subset=["rating_count"]).copy()
+    total_ratings = rated_recipes["rating_count"]
+    positive_ratings = (
+        rated_recipes["rating_4_count"] + rated_recipes["rating_5_count"]
+    )
+    positive_fraction = positive_ratings / total_ratings
+
+    z_squared = z**2
+    numerator = (
+        positive_fraction
+        + z_squared / (2 * total_ratings)
+        - z
+        * np.sqrt(
+            positive_fraction * (1 - positive_fraction) / total_ratings
+            + z_squared / (4 * total_ratings**2)
+        )
+    )
+    denominator = 1 + z_squared / total_ratings
+
+    rated_recipes["positive_rating_count"] = positive_ratings
+    rated_recipes["positive_rating_fraction"] = positive_fraction
+    rated_recipes["wilson_score"] = numerator / denominator
+
+    return rated_recipes.sort_values("wilson_score", ascending=False)
+
+
 if __name__ == "__main__":
     from src.analysis import add_rating_summary, summarize_recipe_ratings
     from src.data_loader import load_raw_data
@@ -116,8 +163,9 @@ if __name__ == "__main__":
         recipes_with_ratings, global_mean
     )
     average_ranking = simple_average_ranking(recipes_with_ratings)
+    wilson = wilson_ranking(recipes_with_ratings)
 
-    print("Top 10 recipes by Bayesian score:")
+    print("Top 10 recipes by Bayesian lower bound score:")
     print(
         ranking[["id", "name", "rating_count", "rating_mean", "bayesian_score"]]
         .head(10)
@@ -136,6 +184,22 @@ if __name__ == "__main__":
     print("\nTop 10 recipes by simple average rating:")
     print(
         average_ranking[["id", "name", "rating_count", "rating_mean"]]
+        .head(10)
+        .to_string(index=False)
+    )
+
+    print("\nTop 10 recipes by Wilson score (4-5 stars positive):")
+    print(
+        wilson[
+            [
+                "id",
+                "name",
+                "rating_count",
+                "positive_rating_count",
+                "positive_rating_fraction",
+                "wilson_score",
+            ]
+        ]
         .head(10)
         .to_string(index=False)
     )
