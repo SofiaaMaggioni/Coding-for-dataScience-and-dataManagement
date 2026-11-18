@@ -1,6 +1,7 @@
 """Functions for ranking recipes with a Bayesian lower bound."""
 
 import numpy as np
+import pandas as pd
 
 
 def simple_average_ranking(recipes_df):
@@ -148,6 +149,42 @@ def wilson_ranking(recipes_df, z=1.96):
     return rated_recipes.sort_values("wilson_score", ascending=False)
 
 
+def compare_top_rankings(rankings, top_n=10):
+    """
+    Compare recipe positions across ranking methods for their top results.
+
+    The result contains every recipe appearing in the top ``top_n`` of at
+    least one method, together with its position in each complete ranking.
+
+    Parameters
+    ----------
+    rankings : dict
+        Mapping of method names to ranked recipes dataframes. Each dataframe
+        must contain an ``id`` and a ``name`` column.
+    top_n : int, optional
+        Number of top recipes to include from each method. Defaults to 10.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Recipe names and their positions in the complete ranking for each
+        method. Recipes outside a method's top ``top_n`` still show their
+        position in that full ranking.
+    """
+    top_recipes = pd.concat(
+        [ranking.head(top_n)[["id", "name"]] for ranking in rankings.values()]
+    ).drop_duplicates(subset="id")
+
+    comparison = top_recipes.copy()
+
+    for method_name, ranking in rankings.items():
+        method_ranks = ranking[["id"]].copy()
+        method_ranks[f"{method_name}_rank"] = range(1, len(ranking) + 1)
+        comparison = comparison.merge(method_ranks, on="id", how="left")
+
+    return comparison
+
+
 if __name__ == "__main__":
     from src.analysis import add_rating_summary, summarize_recipe_ratings
     from src.data_loader import load_raw_data
@@ -164,6 +201,14 @@ if __name__ == "__main__":
     )
     average_ranking = simple_average_ranking(recipes_with_ratings)
     wilson = wilson_ranking(recipes_with_ratings)
+    ranking_comparison = compare_top_rankings(
+        {
+            "bayesian_lb": ranking,
+            "bayesian_average": bayesian_average,
+            "simple_average": average_ranking,
+            "wilson": wilson,
+        }
+    )
 
     print("Top 10 recipes by Bayesian lower bound score:")
     print(
@@ -203,3 +248,6 @@ if __name__ == "__main__":
         .head(10)
         .to_string(index=False)
     )
+
+    print("\nPositions of recipes in at least one top 10:")
+    print(ranking_comparison.to_string(index=False))
