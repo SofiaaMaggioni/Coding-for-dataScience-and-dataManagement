@@ -25,7 +25,41 @@ def simple_average_ranking(recipes_df):
     return rated_recipes.sort_values("rating_mean", ascending=False)
 
 
-def bayesian_ranking(recipes_df, z=1.65):
+def bayesian_average_ranking(recipes_df, global_mean, m=25):
+    """
+    Rank recipes by a Bayesian average shrunk toward the global mean.
+
+    The parameter ``m`` represents the weight of the global mean, expressed
+    as an equivalent number of ratings.
+
+    Parameters
+    ----------
+    recipes_df : pandas.DataFrame
+        Recipes dataframe joined with the rating summary from
+        :func:`src.analysis.add_rating_summary`.
+    global_mean : float
+        Mean of all valid ratings.
+    m : int, optional
+        Weight assigned to the global mean. Defaults to 25.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Rated recipes sorted from highest to lowest Bayesian average.
+    """
+    rated_recipes = recipes_df.dropna(subset=["rating_mean"]).copy()
+    rating_count = rated_recipes["rating_count"]
+
+    rated_recipes["bayesian_average_score"] = (
+        rating_count * rated_recipes["rating_mean"] + m * global_mean
+    ) / (rating_count + m)
+
+    return rated_recipes.sort_values(
+        "bayesian_average_score", ascending=False
+    )
+
+
+def bayesian_lb_ranking(recipes_df, z=1.65):
     """
     Rank rated recipes by a Bayesian lower bound for their mean rating.
 
@@ -74,12 +108,27 @@ if __name__ == "__main__":
     recipes, interactions = load_raw_data()
     rating_summary = summarize_recipe_ratings(interactions)
     recipes_with_ratings = add_rating_summary(recipes, rating_summary)
-    ranking = bayesian_ranking(recipes_with_ratings)
+    valid_ratings = interactions.loc[interactions["rating"] > 0, "rating"]
+    global_mean = valid_ratings.mean()
+
+    ranking = bayesian_lb_ranking(recipes_with_ratings)
+    bayesian_average = bayesian_average_ranking(
+        recipes_with_ratings, global_mean
+    )
     average_ranking = simple_average_ranking(recipes_with_ratings)
 
     print("Top 10 recipes by Bayesian score:")
     print(
         ranking[["id", "name", "rating_count", "rating_mean", "bayesian_score"]]
+        .head(10)
+        .to_string(index=False)
+    )
+
+    print("\nTop 10 recipes by Bayesian average (m=25):")
+    print(
+        bayesian_average[
+            ["id", "name", "rating_count", "rating_mean", "bayesian_average_score"]
+        ]
         .head(10)
         .to_string(index=False)
     )
